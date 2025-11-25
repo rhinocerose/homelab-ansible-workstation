@@ -6,5 +6,4 @@ collections:
 roles:
   - rolehippie.starship
   - pluggero.lazygit
-  - gantsign.starship
   #- moreati.uv
