@@ -1,7 +1,6 @@
 ---
 
 - name: Complete Starship installation with configuration
-  hosts: all
   become: yes
   vars:
     starship_config_dir: "{{ ansible_user_dir }}/.config"
