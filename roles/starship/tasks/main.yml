@@ -1,0 +1,23 @@
+---
+
+- name: Install Starship
+  hosts: all
+  become: yes # Use if you need root privileges for installation
+  tasks:
+    - name: Download Starship install script
+      ansible.builtin.get_url:
+        url: https://starship.rs/install.sh
+        dest: /tmp/install_starship.sh
+        mode: '0755'
+
+    - name: Run Starship install script
+      ansible.builtin.shell: /tmp/install_starship.sh -y
+      args:
+        creates: /usr/local/bin/starship # Adjust if you install to a different path
+
+    - name: Configure Starship for the shell (example for Bash)
+      ansible.builtin.lineinfile:
+        path: ~/.bashrc # Adjust for your shell (e.g., ~/.zshrc)
+        line: 'eval "$(starship init bash)"' # Adjust for your shell
+        insertafter: EOF
+        state: present

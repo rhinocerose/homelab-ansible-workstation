@@ -1,0 +1,10 @@
+base:
+  packages:
+    - wget
+    - curl
+    - git
+    - htop
+    - neofetch
+    - tree
+    - unzip
+    - zip

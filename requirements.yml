@@ -1,6 +1,9 @@
 ---
 
-- roles:
+collections:
+  - name: community.general
+
+roles:
   - rolehippie.starship
   - pluggero.lazygit
   - moreati.uv

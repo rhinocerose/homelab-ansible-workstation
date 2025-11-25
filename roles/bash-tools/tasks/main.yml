@@ -1,0 +1,11 @@
+---
+
+- name: Update apt packages
+  become: yes
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ base.packages }}"
+    state: latest
