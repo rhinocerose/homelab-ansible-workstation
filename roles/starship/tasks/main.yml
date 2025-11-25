@@ -1,22 +1,33 @@
 ---
 
 - name: Install Starship
-  become: yes # Use if you need root privileges for installation
+  become: yes 
   tasks:
-    - name: Download Starship install script
-      ansible.builtin.get_url:
-        url: https://starship.rs/install.sh
-        dest: /tmp/install_starship.sh
-        mode: '0755'
-
-    - name: Run Starship install script
-      ansible.builtin.shell: /tmp/install_starship.sh -y
-      args:
-        creates: /usr/local/bin/starship # Adjust if you install to a different path
-
-    - name: Configure Starship for the shell (example for Bash)
-      ansible.builtin.lineinfile:
-        path: ~/.bashrc # Adjust for your shell (e.g., ~/.zshrc)
-        line: 'eval "$(starship init bash)"' # Adjust for your shell
-        insertafter: EOF
+    - name: Install dependencies
+      package:
+        name:
+          - curl
+          - git
         state: present
+      when: ansible_os_family != "Windows"
+
+    - name: Download and run Starship install script
+      shell: |
+        curl -sS https://starship.rs/install.sh | sh -s -- --yes
+      args:
+        executable: /bin/bash
+      environment:
+        STARSHIP_CACHE: "/tmp/starship-cache"
+      when: ansible_os_family != "Windows"
+
+    - name: Add Starship to shell profiles
+      blockinfile:
+        path: "{{ ansible_user_dir }}/.{{ item }}"
+        block: |
+          eval "$(starship init {{ item }})"
+        create: yes
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
+      loop:
+        - bashrc
+        - zshrc
+      when: ansible_os_family != "Windows"
