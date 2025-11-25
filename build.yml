@@ -6,7 +6,8 @@
   roles:
   
     - role: bash_tools
-    
+      tags: base
+      
     - role: rust
       tags:
         - rust
