@@ -1,7 +1,6 @@
 ---
 
 - name: Install Starship
-  hosts: all
   become: yes # Use if you need root privileges for installation
   tasks:
     - name: Download Starship install script
