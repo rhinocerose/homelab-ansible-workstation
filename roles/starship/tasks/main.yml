@@ -1,5 +1,4 @@
 ---
-
 - name: Complete Starship installation with configuration
   become: yes
   vars:

@@ -1,5 +1,4 @@
 ----
-
 - name: Update apt packages
   become: yes
   ansible.builtin.apt:
