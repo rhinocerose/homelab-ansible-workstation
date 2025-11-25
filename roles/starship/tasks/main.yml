@@ -1,33 +1,8 @@
 ---
 
-- name: Install Starship
-  become: yes 
-  tasks:
-    - name: Install dependencies
-      package:
-        name:
-          - curl
-          - git
-        state: present
-      when: ansible_os_family != "Windows"
-
-    - name: Download and run Starship install script
-      shell: |
-        curl -sS https://starship.rs/install.sh | sh -s -- --yes
-      args:
-        executable: /bin/bash
-      environment:
-        STARSHIP_CACHE: "/tmp/starship-cache"
-      when: ansible_os_family != "Windows"
-
-    - name: Add Starship to shell profiles
-      blockinfile:
-        path: "{{ ansible_user_dir }}/.{{ item }}"
-        block: |
-          eval "$(starship init {{ item }})"
-        create: yes
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
-      loop:
-        - bashrc
-        - zshrc
-      when: ansible_os_family != "Windows"
+- name: Install Starship using community role
+  roles:
+    - role: gantsign.starship
+      vars:
+        starship_shell_config: true
+        starship_shell: bash

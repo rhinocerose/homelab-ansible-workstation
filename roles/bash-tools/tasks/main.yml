@@ -9,3 +9,7 @@
   ansible.builtin.apt:
     name: "{{ base.packages }}"
     state: latest
+
+- name: Install lazygit
+  roles:
+    - role: pluggero.lazygit
