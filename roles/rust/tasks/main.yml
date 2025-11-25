@@ -1,0 +1,26 @@
+---
+
+- name: Ensure Rust and Cargo are installed
+  ansible.builtin.shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  args:
+    creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
+
+- name: Install community.general collection if not present
+  ansible.builtin.command: ansible-galaxy collection install community.general
+  ignore_errors: yes # Ignore if already installed
+
+- name: Install "cargo-binutils" Rust package
+  community.general.cargo:
+    name: "{{ cargo.packages }}"
+    state: latest
+
+- name: Install a Rust binary using cargo binstall
+  ansible.builtin.command: "{{ ansible_env.HOME }}/.cargo/bin/cargo binstall -y probe-rs-tools"
+  args:
+    creates: "{{ ansible_env.HOME }}/.cargo/bin/probe-rs-tools" # Adjust creates to the actual binary name
+
+- name: Add llvm-tools component
+  command: rustup component add llvm-tools
+  args:
+    creates: "{{ ansible_env.HOME }}/.rustup/toolchains/{{ rustup_toolchain | default('stable') }}-{{ ansible_facts.target_triple }}/bin/llvm-objdump"

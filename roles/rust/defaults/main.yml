@@ -1,0 +1,8 @@
+cargo:
+  packages:
+    - cargo-binutils
+    - cargo-binstall
+    - cargo-flash
+    - cargo-generate
+
+
