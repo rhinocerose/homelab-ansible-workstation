@@ -1,9 +1,9 @@
 ---
-- name: workstation
+- name: Workstation
   hosts: all
-  become: yes
-  
-  roles:  
+  become: true
+
+  roles:
     - role: geerlingguy.docker
       when: ansible_architecture == "x86_64"
       tags:
@@ -15,16 +15,15 @@
       tags:
         - docker_arm
         - skip_ansible_lint
-        
+
     - role: bash_tools
-      tags: 
+      tags:
         - base
-      
+
     - role: rust
       tags:
         - rust
-        
+
     - role: starship
       tags:
         - starship
-        

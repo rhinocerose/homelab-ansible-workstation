@@ -1,10 +1,10 @@
 ---
 - name: Install community.general collection if not present
   ansible.builtin.command: ansible-galaxy collection install community.general
-  ignore_errors: yes # Ignore if already installed
+  ignore_errors: true # Ignore if already installed
   
 - name: Include OS-specific variables
-  include_vars: "{{ item }}"
+  ansible.builtin.include_vars: "{{ item }}"
   with_first_found:
     - files:
         - "{{ ansible_os_family }}.yml"
@@ -13,7 +13,7 @@
       skip: true
 
 - name: Install Rust dependencies
-  package:
+  ansible.builtin.package:
     name: "{{ rust_dependencies }}"
     state: present
   when: rust_install_dependencies
@@ -26,21 +26,21 @@
       - libssl-dev
 
 - name: Check if Rust is already installed
-  shell: "which rustc && rustc --version"
+  ansible.builtin.shell: "which rustc && rustc --version"
   register: rust_check
-  ignore_errors: yes
+  ignore_errors: true
   changed_when: false
 
 - name: Download and install Rust
   block:
     - name: Download rustup installer
-      get_url:
+      ansible.builtin.get_url:
         url: https://sh.rustup.rs
         dest: /tmp/rustup.sh
         mode: '0755'
 
     - name: Install Rust with rustup
-      shell: |
+      ansible.builtin.shell: |
         set -e
         export CARGO_HOME="{{ rust_install_path }}"
         export RUSTUP_HOME="{{ rust_install_path }}"
@@ -53,23 +53,23 @@
         RUSTUP_HOME: "{{ rust_install_path }}"
 
     - name: Add Rust to PATH
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ ansible_user_dir }}/.bashrc"
         line: 'export PATH="{{ rust_install_path }}/bin:$PATH"'
         state: present
-        create: yes
+        create: true
 
     - name: Source bashrc for current session
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ ansible_user_dir }}/.bash_profile"
         line: '[ -f ~/.bashrc ] && source ~/.bashrc'
         state: present
-        create: yes
+        create: true
 
   when: rust_check is failed or rust_update
 
 - name: Add additional Rust targets
-  shell: "{{ rust_install_path }}/bin/rustup target add {{ item }}"
+  ansible.builtin.shell: "{{ rust_install_path }}/bin/rustup target add {{ item }}"
   with_items: "{{ rust_targets }}"
   when: rust_targets | length > 0
   environment:
@@ -78,7 +78,7 @@
     RUSTUP_HOME: "{{ rust_install_path }}"
 
 - name: Add additional Rust components
-  shell: "{{ rust_install_path }}/bin/rustup component add {{ item }}"
+  ansible.builtin.shell: "{{ rust_install_path }}/bin/rustup component add {{ item }}"
   with_items: "{{ rust_components }}"
   when: rust_components | length > 0
   environment:
@@ -87,7 +87,7 @@
     RUSTUP_HOME: "{{ rust_install_path }}"
 
 - name: Verify Rust installation
-  shell: "{{ rust_install_path }}/bin/rustc --version"
+  ansible.builtin.shell: "{{ rust_install_path }}/bin/rustc --version"
   register: rust_version
   changed_when: false
 
@@ -96,12 +96,12 @@
     msg: "Rust installed: {{ rust_version.stdout }}"
 
 - name: Verify Cargo installation
-  shell: "{{ rust_install_path }}/bin/cargo --version"
+  ansible.builtin.shell: "{{ rust_install_path }}/bin/cargo --version"
   register: cargo_version
   changed_when: false
 
 - name: Display Cargo version
-  debug:
+  ansible.builtin.debug:
     msg: "Cargo installed: {{ cargo_version.stdout }}"
 
 - name: Install "cargo-binutils" Rust package
@@ -115,6 +115,6 @@
     creates: "{{ ansible_env.HOME }}/.cargo/bin/probe-rs-tools" # Adjust creates to the actual binary name
 
 - name: Add llvm-tools component
-  command: rustup component add llvm-tools
+  ansible.builtin.command: rustup component add llvm-tools
   args:
     creates: "{{ ansible_env.HOME }}/.rustup/toolchains/{{ rustup_toolchain | default('stable') }}-{{ ansible_facts.target_triple }}/bin/llvm-objdump"

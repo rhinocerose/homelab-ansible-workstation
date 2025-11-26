@@ -1,6 +1,6 @@
 ---
 - name: Include OS-specific variables
-  include_vars: "{{ item }}"
+  ansible.builtin.include_vars: "{{ item }}"
   with_first_found:
     - files:
         - "{{ ansible_os_family }}.yml"
@@ -9,7 +9,7 @@
       skip: true
 
 - name: Install Starship dependencies
-  package:
+  ansible.builtin.package:
     name: "{{ starship_dependencies }}"
     state: present
   when: starship_install_dependencies
@@ -20,15 +20,15 @@
       - fonts-firacode  # For proper icon display
 
 - name: Check if Starship is already installed
-  shell: which starship && starship --version
+  ansible.builtin.shell: which starship && starship --version
   register: starship_check
-  ignore_errors: yes
+  ignore_errors: true
   changed_when: false
 
 - name: Install Starship via official script
   block:
     - name: Download and install Starship
-      shell: |
+      ansible.builtin.shell: |
         curl -sS https://starship.rs/install.sh | sh -s -- --yes
       args:
         executable: /bin/bash
@@ -37,62 +37,63 @@
   when: starship_install_method == "script" and starship_check is failed
 
 - name: Install Starship via package manager
-  package:
+  ansible.builtin.package:
     name: starship
     state: present
   when: starship_install_method == "package"
 
 - name: Install Starship via Cargo
-  shell: "{{ rust_install_path }}/bin/cargo install starship --locked"
+  ansible.builtin.shell: "{{ rust_install_path }}/bin/cargo install starship --locked"
   environment:
     PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
     CARGO_HOME: "{{ rust_install_path }}"
   when: starship_install_method == "cargo" and starship_check is failed
 
 - name: Create starship config directory
-  file:
+  ansible.builtin.file:
     path: "{{ starship_config_dir }}"
     state: directory
     mode: '0755'
 
 - name: Deploy starship configuration
-  template:
+  ansible.builtin.template:
     src: starship.toml.j2
     dest: "{{ starship_config_file }}"
     mode: '0644'
   when: starship_custom_config
 
 - name: Configure shell integration
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "{{ ansible_user_dir }}/.{{ item }}rc"
     block: |
       # Starship prompt - Managed by Ansible
       eval "$(starship init {{ item }})"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
-    create: yes
+    create: true
   loop: "{{ starship_shells }}"
   when: "'{{ item }}' in starship_shells"
 
 - name: Configure fish shell integration
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: "{{ ansible_user_dir }}/.config/fish/config.fish"
     block: |
       # Starship prompt - Managed by Ansible
       starship init fish | source
     marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
-    create: yes
+    create: true
   when: "'fish' in starship_shells"
 
 - name: Verify Starship installation
-  shell: starship --version
+  ansible.builtin.shell: starship --version
   register: starship_version
   changed_when: false
 
 - name: Display Starship version
-  debug:
+  ansible.builtin.debug:
     msg: "Starship installed: {{ starship_version.stdout }}"
 
 - name: Test Starship configuration
-  shell: starship explain
+  ansible.builtin.shell: starship explain
   changed_when: false
-  ignore_errors: yes
+  ignore_errors: true
+  
