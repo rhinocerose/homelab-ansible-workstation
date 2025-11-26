@@ -1,4 +1,3 @@
-
 # Rust variables (if installing via cargo)
 rust_channel: stable
 rust_profile: minimal
