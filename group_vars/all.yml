@@ -1,0 +1,2 @@
+ansible_user: ash
+ansible_user_dir: "~/."

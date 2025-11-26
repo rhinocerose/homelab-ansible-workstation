@@ -1,9 +1,17 @@
 ---
 
 collections:
+  - name: ansible.posix
+  - name: community.docker
   - name: community.general
 
 roles:
-  - rolehippie.starship
-  - pluggero.lazygit
+  - name: geerlingguy.docker
+    version: 6.0.0
+
+  - name: geerlingguy.docker_arm
+    version: 5.0.0
+ 
+  - name: rolehippie.starship
+  - name: pluggero.lazygit
   #- moreati.uv
