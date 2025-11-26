@@ -1,8 +1,8 @@
 # Installs
-base_install: true
+bash_tools_base_install: true
 rust_install: true
 starship_install: true
-lazygit_install: true
+bash_tools_lazygit_install: true
 
 # Rust variables (if installing via cargo)
 rust_channel: stable
