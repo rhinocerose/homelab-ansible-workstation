@@ -7,13 +7,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Run ansible-lint
-      uses: ansible/ansible-lint@main
-      with:
-        # Lint all files in the repository
-        path: "."
-        # Enable verbose output to see detailed errors
-        options: "-v"
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@main
+        with:
+            # Lint all files in the repository
+          path: "."
+            # Enable verbose output to see detailed errors
+          options: "-v"

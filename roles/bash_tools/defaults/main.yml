@@ -1,4 +1,4 @@
-base:
+bash_tools_base:
   packages:
     - wget
     - curl

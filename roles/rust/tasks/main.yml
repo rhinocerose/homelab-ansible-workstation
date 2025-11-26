@@ -106,7 +106,7 @@
 
 - name: Install "cargo-binutils" Rust package
   community.general.cargo:
-    name: "{{ cargo.packages }}"
+    name: "{{ rust_cargo.packages }}"
     state: latest
 
 - name: Install a Rust binary using cargo binstall

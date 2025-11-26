@@ -12,10 +12,6 @@
 
 - name: Install base packages
   ansible.builtin.apt:
-    name: "{{ base.packages }}"
+    name: "{{ bash_tools_base.packages }}"
     state: latest
 
-- name: Install lazygit
-  roles:
-    - role: pluggero.lazygit
-    

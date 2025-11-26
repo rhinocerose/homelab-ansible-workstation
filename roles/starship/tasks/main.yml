@@ -96,4 +96,3 @@
   ansible.builtin.shell: starship explain
   changed_when: false
   ignore_errors: true
-  

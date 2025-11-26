@@ -27,3 +27,5 @@
     - role: starship
       tags:
         - starship
+
+    - role: pluggero.lazygit
