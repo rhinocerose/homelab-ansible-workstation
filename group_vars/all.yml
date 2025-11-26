@@ -1,3 +1,4 @@
+---
 # Installs
 bash_tools_base_install: true
 rust_install: true

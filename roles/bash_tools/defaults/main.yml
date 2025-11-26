@@ -1,3 +1,4 @@
+---
 bash_tools_base_install: false
 bash_tools_base:
   packages:
