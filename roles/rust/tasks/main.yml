@@ -2,7 +2,8 @@
 - name: Install community.general collection if not present
   ansible.builtin.command: ansible-galaxy collection install community.general
   ignore_errors: true # Ignore if already installed
-  
+  register: ignore_errors_register # <- Stores errors and failures for evaluation.
+
 - name: Include OS-specific variables
   ansible.builtin.include_vars: "{{ item }}"
   with_first_found:
@@ -92,7 +93,7 @@
   changed_when: false
 
 - name: Display Rust version
-  debug:
+  ansible.builtin.debug:
     msg: "Rust installed: {{ rust_version.stdout }}"
 
 - name: Verify Cargo installation

@@ -7,7 +7,7 @@ rust_user: "{{ ansible_user }}"
 rust_update: false
 rust_install_dependencies: true
 
-bash_tools_cargo:
+rust_cargo:
   packages:
     - cargo-binutils
     - cargo-binstall
