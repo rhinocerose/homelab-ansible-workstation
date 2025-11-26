@@ -1,8 +1,5 @@
-rust_channel: stable
 rust_targets: []
 rust_components: []
-rust_profile: minimal
-rust_install_path: "{{ ansible_user_dir }}/.cargo"
 rust_user: "{{ ansible_user }}"
 rust_update: false
 rust_install_dependencies: true

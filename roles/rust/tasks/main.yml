@@ -80,7 +80,7 @@
 - name: Check existing Rust targets
   ansible.builtin.command:
     cmd: "{{ rust_install_path }}/bin/rustup target list --installed"
-  register: existing_rust_targets
+  register: rust_existing_targets
   changed_when: false
   failed_when: false
   when: rust_binary.stat.exists and rust_targets | length > 0
@@ -96,13 +96,13 @@
   when:
     - rust_binary.stat.exists
     - rust_targets | length > 0
-    - item not in existing_rust_targets.stdout
+    - item not in rust_existing_targets.stdout
   changed_when: true
 
 - name: Check existing Rust components
   ansible.builtin.command:
     cmd: "{{ rust_install_path }}/bin/rustup component list --installed"
-  register: existing_rust_components
+  register: rust_existing_components
   changed_when: false
   failed_when: false
   when: rust_binary.stat.exists and rust_components | length > 0
@@ -118,7 +118,7 @@
   when:
     - rust_binary.stat.exists
     - rust_components | length > 0
-    - item not in existing_rust_components.stdout
+    - item not in rust_existing_components.stdout
   changed_when: true
 
 - name: Verify Rust installation
@@ -140,8 +140,8 @@
 
 - name: Display Cargo installation status
   ansible.builtin.debug:
-    msg: "{{ 'Cargo updated: ' if rust_update | bool else 'Cargo installed: ' }}{{ cargo_version.stdout }}"
-  when: cargo_version is success
+    msg: "{{ 'Cargo updated: ' if rust_update | bool else 'Cargo installed: ' }}{{ rust_cargo_version.stdout }}"
+  when: rust_cargo_version is success
 
 - name: Install "cargo-binutils" Rust package
   community.general.cargo:
