@@ -17,15 +17,17 @@
         - skip_ansible_lint
 
     - role: bash_tools
-      tags:
-        - base
+      when:
+        - base_install is true
 
     - role: rust
-      tags:
-        - rust
+      when:
+        - rust_install is true
 
     - role: starship
-      tags:
-        - starship
+      when:
+        - starship_install is true
 
     - role: pluggero.lazygit
+      when:
+        - lazygit_install is true

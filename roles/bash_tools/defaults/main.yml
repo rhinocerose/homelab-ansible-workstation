@@ -1,3 +1,4 @@
+base_install: false
 bash_tools_base:
   packages:
     - wget
@@ -8,3 +9,5 @@ bash_tools_base:
     - tree
     - unzip
     - zip
+
+lazygit_install: false

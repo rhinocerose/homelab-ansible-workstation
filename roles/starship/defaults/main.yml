@@ -1,5 +1,6 @@
 ---
 # Starship role default variables
+starship_install: false
 starship_install_method: "script"
 starship_config_dir: "{{ ansible_user_dir }}/.config"
 starship_config_file: "{{ starship_config_dir }}/starship.toml"

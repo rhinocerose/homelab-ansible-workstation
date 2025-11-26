@@ -1,3 +1,4 @@
+rust_install: false
 rust_targets: []
 rust_components: []
 rust_user: "{{ ansible_user }}"

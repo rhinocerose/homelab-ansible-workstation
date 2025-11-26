@@ -1,3 +1,9 @@
+# Installs
+base_install: true
+rust_install: true
+starship_install: true
+lazygit_install: true
+
 # Rust variables (if installing via cargo)
 rust_channel: stable
 rust_profile: minimal
