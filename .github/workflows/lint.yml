@@ -2,7 +2,9 @@ name: Ansible Lint
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   ansible-lint:
@@ -12,6 +14,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      - name: Install test dependencies
+        run: pip3 install ansible yamllint==1.30.0 ansible-lint==6.14.6
+
       - name: Run ansible-lint
         uses: ansible/ansible-lint@main
         with:
@@ -19,3 +29,6 @@ jobs:
           path: "."
             # Enable verbose output to see detailed errors
           options: "-v"
+
+      - name: Lint yaml files
+        run: yamllint .
