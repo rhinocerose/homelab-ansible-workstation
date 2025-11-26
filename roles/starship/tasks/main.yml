@@ -1,6 +1,7 @@
 ---
 - name: Include OS-specific variables
-  ansible.builtin.include_vars: "{{ item }}"
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
   with_first_found:
     - files:
         - "{{ ansible_os_family }}.yml"
@@ -12,29 +13,28 @@
   ansible.builtin.package:
     name: "{{ starship_dependencies }}"
     state: present
-  when: starship_install_dependencies
-  vars:
-    starship_dependencies:
-      - curl
-      - git
-      - fonts-firacode  # For proper icon display
+  when: starship_install_dependencies | bool
 
 - name: Check if Starship is already installed
-  ansible.builtin.shell: which starship && starship --version
+  ansible.builtin.command:
+    cmd: which starship && starship --version
   register: starship_check
-  ignore_errors: true
   changed_when: false
+  failed_when: false
 
 - name: Install Starship via official script
+  when:
+    - starship_install_method == "script"
+    - starship_check is failed or starship_force_reinstall | default(false) | bool
   block:
     - name: Download and install Starship
-      ansible.builtin.shell: |
-        curl -sS https://starship.rs/install.sh | sh -s -- --yes
-      args:
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          curl -fsSL https://starship.rs/install.sh | sh -s -- --yes
         executable: /bin/bash
-      environment:
-        STARSHIP_CACHE: "/tmp/starship-cache"
-  when: starship_install_method == "script" and starship_check is failed
+      args:
+        creates: /usr/local/bin/starship
 
 - name: Install Starship via package manager
   ansible.builtin.package:
@@ -43,11 +43,15 @@
   when: starship_install_method == "package"
 
 - name: Install Starship via Cargo
-  ansible.builtin.shell: "{{ rust_install_path }}/bin/cargo install starship --locked"
+  when:
+    - starship_install_method == "cargo"
+    - starship_check is failed
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path | default(ansible_user_dir + '/.cargo') }}/bin/cargo install starship --locked"
+    creates: "{{ ansible_user_dir }}/.cargo/bin/starship"
   environment:
-    PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
-    CARGO_HOME: "{{ rust_install_path }}"
-  when: starship_install_method == "cargo" and starship_check is failed
+    PATH: "{{ rust_install_path | default(ansible_user_dir + '/.cargo') }}/bin:{{ ansible_env.PATH }}"
+    CARGO_HOME: "{{ rust_install_path | default(ansible_user_dir + '/.cargo') }}"
 
 - name: Create starship config directory
   ansible.builtin.file:
@@ -60,7 +64,7 @@
     src: starship.toml.j2
     dest: "{{ starship_config_file }}"
     mode: '0644'
-  when: starship_custom_config
+  when: starship_custom_config | bool
 
 - name: Configure shell integration
   ansible.builtin.blockinfile:
@@ -70,8 +74,9 @@
       eval "$(starship init {{ item }})"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
     create: true
+    mode: '0644'
   loop: "{{ starship_shells }}"
-  when: "'{{ item }}' in starship_shells"
+  when: item in starship_shells
 
 - name: Configure fish shell integration
   ansible.builtin.blockinfile:
@@ -81,10 +86,12 @@
       starship init fish | source
     marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
     create: true
+    mode: '0644'
   when: "'fish' in starship_shells"
 
 - name: Verify Starship installation
-  ansible.builtin.shell: starship --version
+  ansible.builtin.command:
+    cmd: starship --version
   register: starship_version
   changed_when: false
 
@@ -93,6 +100,8 @@
     msg: "Starship installed: {{ starship_version.stdout }}"
 
 - name: Test Starship configuration
-  ansible.builtin.shell: starship explain
+  ansible.builtin.command:
+    cmd: starship explain
+  register: starship_explain
   changed_when: false
-  ignore_errors: true
+  failed_when: starship_explain.rc != 0 and starship_explain.rc != 1

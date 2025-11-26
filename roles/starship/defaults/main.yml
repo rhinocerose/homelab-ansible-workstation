@@ -1,8 +1,15 @@
 ---
 # Starship role default variables
-starship_install_method: script  # script, package, cargo
+starship_install_method: "script"
 starship_config_dir: "{{ ansible_user_dir }}/.config"
 starship_config_file: "{{ starship_config_dir }}/starship.toml"
-starship_shells: ['bash']
+starship_shells:
+  - bash
 starship_custom_config: false
 starship_install_dependencies: true
+starship_force_reinstall: false
+
+# Rust variables (if installing via cargo)
+rust_channel: "stable"
+rust_profile: "minimal"
+rust_install_path: "{{ ansible_user_dir }}/.cargo"

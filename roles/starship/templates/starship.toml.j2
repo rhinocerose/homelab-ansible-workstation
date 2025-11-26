@@ -1,0 +1,70 @@
+# Ansible managed Starship configuration
+
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"
+vicmd_symbol = "[V](bold green)"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = false
+
+[git_branch]
+symbol = "🌱 "
+style = "bold purple"
+
+[git_status]
+conflicted = "🏳"
+ahead = "🏎💨"
+behind = "😰"
+diverged = "😵"
+untracked = "🤷"
+stashed = "📦"
+modified = "📝"
+staged = "➕"
+renamed = "👅"
+deleted = "🗑"
+
+[nodejs]
+symbol = "⬢ "
+
+[python]
+symbol = "🐍 "
+
+[rust]
+symbol = "🦀 "
+format = 'via [🦀 $version](bold red) '
+
+[golang]
+symbol = "🐹 "
+
+[docker_context]
+symbol = "🐳 "
+
+[aws]
+symbol = "☁️  "
+
+[kubernetes]
+symbol = "☸️  "
+
+[time]
+disabled = false
+format = '[🕙 %H:%M]'
+
+# Custom format
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$cmd_duration\
+$line_break\
+$character"""
+
+[username]
+style_user = "bold blue"
+style_root = "bold red"
+format = "[$user]($style) "
+disabled = false
+show_always = true

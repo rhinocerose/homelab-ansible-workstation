@@ -1,109 +1,147 @@
 ---
-- name: Install community.general collection if not present
-  ansible.builtin.command: ansible-galaxy collection install community.general
-  ignore_errors: true # Ignore if already installed
-  register: ignore_errors_register # <- Stores errors and failures for evaluation.
-
-- name: Include OS-specific variables
-  ansible.builtin.include_vars: "{{ item }}"
-  with_first_found:
-    - files:
-        - "{{ ansible_os_family }}.yml"
-        - "{{ ansible_distribution }}.yml"
-        - "{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml"
-      skip: true
-
 - name: Install Rust dependencies
   ansible.builtin.package:
     name: "{{ rust_dependencies }}"
     state: present
-  when: rust_install_dependencies
-  vars:
-    rust_dependencies:
-      - curl
-      - gcc
-      - make
-      - pkg-config
-      - libssl-dev
+  when: rust_install_dependencies | bool
 
 - name: Check if Rust is already installed
-  ansible.builtin.shell: "which rustc && rustc --version"
-  register: rust_check
-  ignore_errors: true
+  ansible.builtin.stat:
+    path: "{{ rust_install_path }}/bin/rustc"
+  register: rust_binary
+
+- name: Check current Rust version
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/rustc --version"
+  register: rust_current_version
   changed_when: false
+  failed_when: false
+  when: rust_binary.stat.exists
 
 - name: Download and install Rust
+  when: not rust_binary.stat.exists or rust_update | bool
   block:
     - name: Download rustup installer
       ansible.builtin.get_url:
         url: https://sh.rustup.rs
         dest: /tmp/rustup.sh
         mode: '0755'
+        timeout: 30
+        validate_certs: true
+
+    - name: Create Rust installation directory
+      ansible.builtin.file:
+        path: "{{ rust_install_path }}"
+        state: directory
+        mode: '0755'
 
     - name: Install Rust with rustup
-      ansible.builtin.shell: |
-        set -e
-        export CARGO_HOME="{{ rust_install_path }}"
-        export RUSTUP_HOME="{{ rust_install_path }}"
-        /tmp/rustup.sh -y --default-toolchain {{ rust_channel }} --profile {{ rust_profile }}
-      args:
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          export CARGO_HOME="{{ rust_install_path }}"
+          export RUSTUP_HOME="{{ rust_install_path }}"
+          /tmp/rustup.sh -y --default-toolchain {{ rust_channel }} --profile {{ rust_profile }}
         executable: /bin/bash
-        creates: "{{ rust_install_path }}/bin/rustc"
       environment:
         CARGO_HOME: "{{ rust_install_path }}"
         RUSTUP_HOME: "{{ rust_install_path }}"
+      args:
+        creates: "{{ rust_install_path }}/bin/rustc"
 
-    - name: Add Rust to PATH
+    - name: Clean up installer
+      ansible.builtin.file:
+        path: /tmp/rustup.sh
+        state: absent
+
+- name: Configure shell environment
+  block:
+    - name: Add Rust to PATH in bashrc
       ansible.builtin.lineinfile:
         path: "{{ ansible_user_dir }}/.bashrc"
         line: 'export PATH="{{ rust_install_path }}/bin:$PATH"'
+        regex: '^export PATH=.*rustup.*bin'
         state: present
         create: true
+        mode: '0644'
 
-    - name: Source bashrc for current session
+    - name: Ensure bash_profile sources bashrc
       ansible.builtin.lineinfile:
         path: "{{ ansible_user_dir }}/.bash_profile"
         line: '[ -f ~/.bashrc ] && source ~/.bashrc'
         state: present
         create: true
+        mode: '0644'
 
-  when: rust_check is failed or rust_update
+    - name: Add Rust to current environment
+      ansible.builtin.set_fact:
+        rust_env_path: "{{ rust_install_path }}/bin"
 
-- name: Add additional Rust targets
-  ansible.builtin.shell: "{{ rust_install_path }}/bin/rustup target add {{ item }}"
-  with_items: "{{ rust_targets }}"
-  when: rust_targets | length > 0
+- name: Check existing Rust targets
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/rustup target list --installed"
+  register: existing_rust_targets
+  changed_when: false
+  failed_when: false
+  when: rust_binary.stat.exists and rust_targets | length > 0
+
+- name: Install additional Rust targets
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/rustup target add {{ item }}"
   environment:
-    PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ rust_env_path | default(rust_install_path + '/bin') }}:{{ ansible_env.PATH }}"
     CARGO_HOME: "{{ rust_install_path }}"
     RUSTUP_HOME: "{{ rust_install_path }}"
+  loop: "{{ rust_targets }}"
+  when:
+    - rust_binary.stat.exists
+    - rust_targets | length > 0
+    - item not in existing_rust_targets.stdout
+  changed_when: true
 
-- name: Add additional Rust components
-  ansible.builtin.shell: "{{ rust_install_path }}/bin/rustup component add {{ item }}"
-  with_items: "{{ rust_components }}"
-  when: rust_components | length > 0
+- name: Check existing Rust components
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/rustup component list --installed"
+  register: existing_rust_components
+  changed_when: false
+  failed_when: false
+  when: rust_binary.stat.exists and rust_components | length > 0
+
+- name: Install additional Rust components
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/rustup component add {{ item }}"
   environment:
-    PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ rust_env_path | default(rust_install_path + '/bin') }}:{{ ansible_env.PATH }}"
     CARGO_HOME: "{{ rust_install_path }}"
     RUSTUP_HOME: "{{ rust_install_path }}"
+  loop: "{{ rust_components }}"
+  when:
+    - rust_binary.stat.exists
+    - rust_components | length > 0
+    - item not in existing_rust_components.stdout
+  changed_when: true
 
 - name: Verify Rust installation
-  ansible.builtin.shell: "{{ rust_install_path }}/bin/rustc --version"
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/rustc --version"
   register: rust_version
   changed_when: false
 
-- name: Display Rust version
+- name: Display Rust installation status
   ansible.builtin.debug:
-    msg: "Rust installed: {{ rust_version.stdout }}"
+    msg: "{{ 'Rust updated: ' if rust_update | bool else 'Rust installed: ' }}{{ rust_version.stdout }}"
+  when: rust_version is success
 
 - name: Verify Cargo installation
-  ansible.builtin.shell: "{{ rust_install_path }}/bin/cargo --version"
+  ansible.builtin.command:
+    cmd: "{{ rust_install_path }}/bin/cargo --version"
   register: cargo_version
   changed_when: false
 
-- name: Display Cargo version
+- name: Display Cargo installation status
   ansible.builtin.debug:
-    msg: "Cargo installed: {{ cargo_version.stdout }}"
+    msg: "{{ 'Cargo updated: ' if rust_update | bool else 'Cargo installed: ' }}{{ cargo_version.stdout }}"
+  when: cargo_version is success
 
 - name: Install "cargo-binutils" Rust package
   community.general.cargo:

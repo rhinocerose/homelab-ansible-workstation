@@ -1,0 +1,5 @@
+---
+starship_dependencies:
+  - curl
+  - git
+  - fonts-firacode

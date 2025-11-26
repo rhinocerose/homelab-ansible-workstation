@@ -1,17 +1,15 @@
 ---
 - name: Update package cache
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Upgrade system packages
   ansible.builtin.apt:
     upgrade: dist
-    autoremove: yes
-    autoclean: yes
+    autoremove: true
+    autoclean: true
 
 - name: Install base packages
   ansible.builtin.apt:
     name: "{{ bash_tools_base.packages }}"
-    state: latest
-
