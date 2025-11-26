@@ -1,29 +1,98 @@
 ---
-- name: Complete Starship installation with configuration
-  become: yes
-  vars:
-    starship_config_dir: "{{ ansible_user_dir }}/.config"
-    starship_config_file: "{{ starship_config_dir }}/starship.toml"
+- name: Include OS-specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_os_family }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml"
+      skip: true
 
-  tasks:
-    - name: Install Starship via official script
+- name: Install Starship dependencies
+  package:
+    name: "{{ starship_dependencies }}"
+    state: present
+  when: starship_install_dependencies
+  vars:
+    starship_dependencies:
+      - curl
+      - git
+      - fonts-firacode  # For proper icon display
+
+- name: Check if Starship is already installed
+  shell: which starship && starship --version
+  register: starship_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install Starship via official script
+  block:
+    - name: Download and install Starship
       shell: |
         curl -sS https://starship.rs/install.sh | sh -s -- --yes
       args:
         executable: /bin/bash
       environment:
         STARSHIP_CACHE: "/tmp/starship-cache"
+  when: starship_install_method == "script" and starship_check is failed
 
-    - name: Create starship config directory
-      file:
-        path: "{{ starship_config_dir }}"
-        state: directory
-        mode: '0755'
+- name: Install Starship via package manager
+  package:
+    name: starship
+    state: present
+  when: starship_install_method == "package"
 
-    - name: Configure bash integration
-      blockinfile:
-        path: "{{ ansible_user_dir }}/.bashrc"
-        block: |
-          # Starship prompt
-          eval "$(starship init bash)"
-        marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
+- name: Install Starship via Cargo
+  shell: "{{ rust_install_path }}/bin/cargo install starship --locked"
+  environment:
+    PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
+    CARGO_HOME: "{{ rust_install_path }}"
+  when: starship_install_method == "cargo" and starship_check is failed
+
+- name: Create starship config directory
+  file:
+    path: "{{ starship_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy starship configuration
+  template:
+    src: starship.toml.j2
+    dest: "{{ starship_config_file }}"
+    mode: '0644'
+  when: starship_custom_config
+
+- name: Configure shell integration
+  blockinfile:
+    path: "{{ ansible_user_dir }}/.{{ item }}rc"
+    block: |
+      # Starship prompt - Managed by Ansible
+      eval "$(starship init {{ item }})"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
+    create: yes
+  loop: "{{ starship_shells }}"
+  when: "'{{ item }}' in starship_shells"
+
+- name: Configure fish shell integration
+  blockinfile:
+    path: "{{ ansible_user_dir }}/.config/fish/config.fish"
+    block: |
+      # Starship prompt - Managed by Ansible
+      starship init fish | source
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - starship"
+    create: yes
+  when: "'fish' in starship_shells"
+
+- name: Verify Starship installation
+  shell: starship --version
+  register: starship_version
+  changed_when: false
+
+- name: Display Starship version
+  debug:
+    msg: "Starship installed: {{ starship_version.stdout }}"
+
+- name: Test Starship configuration
+  shell: starship explain
+  changed_when: false
+  ignore_errors: yes

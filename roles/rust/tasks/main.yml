@@ -1,14 +1,108 @@
 ---
-
-- name: Ensure Rust and Cargo are installed
-  ansible.builtin.shell: |
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-  args:
-    creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo"
-
 - name: Install community.general collection if not present
   ansible.builtin.command: ansible-galaxy collection install community.general
   ignore_errors: yes # Ignore if already installed
+  
+- name: Include OS-specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_os_family }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_distribution }}_{{ ansible_distribution_version }}.yml"
+      skip: true
+
+- name: Install Rust dependencies
+  package:
+    name: "{{ rust_dependencies }}"
+    state: present
+  when: rust_install_dependencies
+  vars:
+    rust_dependencies:
+      - curl
+      - gcc
+      - make
+      - pkg-config
+      - libssl-dev
+
+- name: Check if Rust is already installed
+  shell: "which rustc && rustc --version"
+  register: rust_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Download and install Rust
+  block:
+    - name: Download rustup installer
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /tmp/rustup.sh
+        mode: '0755'
+
+    - name: Install Rust with rustup
+      shell: |
+        set -e
+        export CARGO_HOME="{{ rust_install_path }}"
+        export RUSTUP_HOME="{{ rust_install_path }}"
+        /tmp/rustup.sh -y --default-toolchain {{ rust_channel }} --profile {{ rust_profile }}
+      args:
+        executable: /bin/bash
+        creates: "{{ rust_install_path }}/bin/rustc"
+      environment:
+        CARGO_HOME: "{{ rust_install_path }}"
+        RUSTUP_HOME: "{{ rust_install_path }}"
+
+    - name: Add Rust to PATH
+      lineinfile:
+        path: "{{ ansible_user_dir }}/.bashrc"
+        line: 'export PATH="{{ rust_install_path }}/bin:$PATH"'
+        state: present
+        create: yes
+
+    - name: Source bashrc for current session
+      lineinfile:
+        path: "{{ ansible_user_dir }}/.bash_profile"
+        line: '[ -f ~/.bashrc ] && source ~/.bashrc'
+        state: present
+        create: yes
+
+  when: rust_check is failed or rust_update
+
+- name: Add additional Rust targets
+  shell: "{{ rust_install_path }}/bin/rustup target add {{ item }}"
+  with_items: "{{ rust_targets }}"
+  when: rust_targets | length > 0
+  environment:
+    PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
+    CARGO_HOME: "{{ rust_install_path }}"
+    RUSTUP_HOME: "{{ rust_install_path }}"
+
+- name: Add additional Rust components
+  shell: "{{ rust_install_path }}/bin/rustup component add {{ item }}"
+  with_items: "{{ rust_components }}"
+  when: rust_components | length > 0
+  environment:
+    PATH: "{{ rust_install_path }}/bin:{{ ansible_env.PATH }}"
+    CARGO_HOME: "{{ rust_install_path }}"
+    RUSTUP_HOME: "{{ rust_install_path }}"
+
+- name: Verify Rust installation
+  shell: "{{ rust_install_path }}/bin/rustc --version"
+  register: rust_version
+  changed_when: false
+
+- name: Display Rust version
+  debug:
+    msg: "Rust installed: {{ rust_version.stdout }}"
+
+- name: Verify Cargo installation
+  shell: "{{ rust_install_path }}/bin/cargo --version"
+  register: cargo_version
+  changed_when: false
+
+- name: Display Cargo version
+  debug:
+    msg: "Cargo installed: {{ cargo_version.stdout }}"
 
 - name: Install "cargo-binutils" Rust package
   community.general.cargo:
