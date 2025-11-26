@@ -1,0 +1,5 @@
+
+# Rust variables (if installing via cargo)
+rust_channel: stable
+rust_profile: minimal
+rust_install_path: "{{ ansible_user_dir }}/.cargo"

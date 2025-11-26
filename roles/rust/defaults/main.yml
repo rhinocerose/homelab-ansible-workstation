@@ -8,5 +8,8 @@ rust_cargo:
   packages:
     - cargo-binutils
     - cargo-binstall
+
+rust_binstall:
+  packages:
     - cargo-flash
     - cargo-generate

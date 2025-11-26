@@ -135,7 +135,7 @@
 - name: Verify Cargo installation
   ansible.builtin.command:
     cmd: "{{ rust_install_path }}/bin/cargo --version"
-  register: cargo_version
+  register: rust_cargo_version
   changed_when: false
 
 - name: Display Cargo installation status
